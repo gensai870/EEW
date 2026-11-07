@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e12">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="緊急地震速報と地震情報をリアルタイムに表示するモニター（非公式）">
+<title>EEW モニター</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1>EEW モニター</h1>
+  <div class="chips" aria-label="接続状態">
+    <span class="chip" id="chip-eew"><i class="dot"></i>緊急地震速報</span>
+    <span class="chip" id="chip-list"><i class="dot"></i>地震情報</span>
+    <span class="chip clock" id="chip-clock" title="補正後の日本標準時">--:--:-- JST</span>
+  </div>
+  <div class="actions">
+    <button type="button" id="btn-voice" aria-pressed="false">音声 オフ</button>
+    <button type="button" id="btn-notify" aria-pressed="false">通知 オフ</button>
+    <label class="sel">
+      <span>通知の条件</span>
+      <select id="sel-threshold">
+        <option value="warn">警報のみ</option>
+        <option value="3">震度3以上</option>
+        <option value="5-">震度5弱以上</option>
+        <option value="all">すべて（予報を含む）</option>
+      </select>
+    </label>
+    <button type="button" id="btn-install" hidden>ホームに追加</button>
+  </div>
+</header>
+
+<main>
+  <section class="mapwrap" aria-label="地図">
+    <canvas id="map" role="img" aria-label="震源と地震履歴の地図"></canvas>
+
+    <fieldset class="layers">
+      <legend>表示</legend>
+      <label><input type="checkbox" data-layer="eew" checked>到達円（概算）</label>
+      <label><input type="checkbox" data-layer="quakes" checked>地震履歴</label>
+      <label><input type="checkbox" data-layer="grid" checked>経緯度線</label>
+      <label><input type="checkbox" data-layer="user" checked>現在地</label>
+    </fieldset>
+
+    <div class="zoom">
+      <button type="button" id="z-in" aria-label="拡大">＋</button>
+      <button type="button" id="z-out" aria-label="縮小">－</button>
+      <button type="button" id="z-home" aria-label="日本全体に戻す">日本</button>
+    </div>
+
+    <div id="banner" class="banner" role="alert" hidden>
+      <div class="b-int" id="b-int"></div>
+      <div class="b-main">
+        <div class="b-kind" id="b-kind"></div>
+        <div class="b-place" id="b-place"></div>
+        <div class="b-meta" id="b-meta"></div>
+      </div>
+      <button type="button" id="b-focus">震源へ</button>
+    </div>
+
+    <div id="tip" class="tip" hidden></div>
+
+    <div class="legend" aria-hidden="true">
+      <span class="lg"><i class="lg-p"></i>P波</span>
+      <span class="lg"><i class="lg-s"></i>S波</span>
+      <span class="lg-scale" id="lg-scale"></span>
+    </div>
+  </section>
+
+  <section class="panels">
+    <article class="panel" id="p-eew">
+      <h2>緊急地震速報 <span class="badge idle" id="eew-badge">受信待ち</span></h2>
+      <div class="body" id="eew-body"></div>
+    </article>
+
+    <article class="panel" id="p-list">
+      <h2>地震情報 <span class="sub" id="list-sub"></span></h2>
+      <div class="note" id="list-note" hidden></div>
+      <div class="body list" id="list-body"></div>
+    </article>
+
+    <div class="col">
+      <article class="panel" id="p-conn">
+        <h2>接続</h2>
+        <div class="body" id="conn-body"></div>
+      </article>
+      <article class="panel" id="p-tools">
+        <h2>ツール</h2>
+        <div class="body" id="tools-body"></div>
+      </article>
+    </div>
+
+    <article class="panel" id="p-about">
+      <h2>このサービスについて</h2>
+      <div class="body prose">
+        <p>情報の提供元：<a href="https://wolfx.jp/" target="_blank" rel="noopener noreferrer">Wolfx Project</a>（気象庁が発表した緊急地震速報・地震情報を取得）。Wolfx Project は気象庁を含む公的機関とは関係のない非公式のサービスです。</p>
+        <p>このアプリも非公式です。公式の緊急地震速報・避難情報の代わりにはなりません。人命や安全に関わる判断の唯一の情報源にしないでください。</p>
+        <p>遅延・欠落・誤りが起こることがあります。「予報」は震源やマグニチュードの精度が低く、誤報もあります。</p>
+        <p>通知と音声は、このアプリを開いている間だけ動きます。閉じている間は届きません。</p>
+        <p>地図の円は、P波7km/s・S波4km/sで計算した概算です。実際の到達時刻とは異なります。</p>
+        <p>地図データ：<a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>（パブリックドメイン）。</p>
+      </div>
+    </article>
+  </section>
+</main>
+
+<script src="/app.js" defer></script>
+</body>
+</html>
