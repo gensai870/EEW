@@ -34,6 +34,7 @@
       </select>
     </label>
     <button type="button" id="btn-install" hidden>ホームに追加</button>
+    <button type="button" id="btn-about" aria-haspopup="dialog">このサービスについて</button>
   </div>
 </header>
 
@@ -97,9 +98,15 @@
       </article>
     </div>
 
-    <article class="panel" id="p-about">
-      <h2>このサービスについて</h2>
-      <div class="body prose">
+  </section>
+</main>
+
+<dialog id="dlg-about" aria-labelledby="about-title">
+  <div class="dlg-head">
+    <h2 id="about-title">このサービスについて</h2>
+    <button type="button" id="about-close" aria-label="閉じる">閉じる</button>
+  </div>
+  <div class="dlg-body prose">
         <p>情報の提供元：<a href="https://wolfx.jp/" target="_blank" rel="noopener noreferrer">Wolfx Project</a>（気象庁が発表した緊急地震速報・地震情報を取得）。Wolfx Project は気象庁を含む公的機関とは関係のない非公式のサービスです。</p>
         <p>このアプリも非公式です。公式の緊急地震速報・避難情報の代わりにはなりません。人命や安全に関わる判断の唯一の情報源にしないでください。</p>
         <p>遅延・欠落・誤りが起こることがあります。「予報」は震源やマグニチュードの精度が低く、誤報もあります。</p>
@@ -107,9 +114,7 @@
         <p>地図の円は、P波7km/s・S波4km/sで計算した概算です。実際の到達時刻とは異なります。</p>
         <p>地図データ：<a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>（パブリックドメイン）。</p>
       </div>
-    </article>
-  </section>
-</main>
+</dialog>
 
 <script src="/app.js" defer></script>
 </body>

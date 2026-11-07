@@ -718,4 +718,9 @@ $('#btn-install').addEventListener('click', async () => {
   deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {});
   deferredInstall = null; $('#btn-install').hidden = true;
 });
+
+const dlgAbout = $('#dlg-about');
+$('#btn-about').addEventListener('click', () => { if (!dlgAbout.open) dlgAbout.showModal(); });
+$('#about-close').addEventListener('click', () => dlgAbout.close());
+dlgAbout.addEventListener('click', (ev) => { if (ev.target === dlgAbout) dlgAbout.close(); });
 })();
