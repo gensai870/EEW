@@ -1,4 +1,4 @@
-const CACHE = 'eew-shell-v3';
+const CACHE = 'eew-shell-v4';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/data/land.json',
   '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'

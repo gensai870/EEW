@@ -96,7 +96,7 @@ const S = {
   listUpdated: NaN,
   listInfo: '',
   user: null,
-  layers: Object.assign({ eew: true, quakes: true, grid: true, user: true }, store.get('layers', {})),
+  layers: Object.assign({ eew: true, quakes: true, grid: true }, store.get('layers', {})),
   voice: false,
   notify: false,
   threshold: store.get('threshold', 'warn'),
@@ -240,7 +240,7 @@ function draw() {
   ctx.strokeStyle = '#2b3b47'; ctx.lineWidth = 1; ctx.stroke();
 
   if (S.layers.quakes) drawQuakes();
-  if (S.layers.user && S.user) drawUser();
+  if (S.user) drawUser();
   if (S.layers.eew) drawEEW();
 }
 
@@ -366,6 +366,30 @@ function showTip(px, py) {
 $('#z-in').addEventListener('click', () => zoomAt(W / 2, H / 2, 0.6));
 $('#z-out').addEventListener('click', () => zoomAt(W / 2, H / 2, -0.6));
 $('#z-home').addEventListener('click', () => { fitJapan(); draw(); });
+
+const locStatus = $('#loc-status'), btnLoc = $('#z-loc');
+let locTimer = 0;
+function locMsg(text) {
+  clearTimeout(locTimer);
+  locStatus.textContent = text; locStatus.hidden = !text;
+  if (text) locTimer = setTimeout(() => { locStatus.hidden = true; }, 5000);
+}
+btnLoc.addEventListener('click', () => {
+  if (!('geolocation' in navigator)) { locMsg('この端末では現在地を取得できません。'); return; }
+  btnLoc.disabled = true; locMsg('現在地を取得中…');
+  navigator.geolocation.getCurrentPosition((pos) => {
+    btnLoc.disabled = false;
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    if (!(lon >= 122 && lon <= 154 && lat >= 20 && lat <= 46.5)) { locMsg('現在地が日本の地図の範囲外です。'); return; }
+    S.user = { lat, lon };
+    locMsg('');
+    flyTo(lon, lat, 8);
+  }, (err) => {
+    btnLoc.disabled = false;
+    locMsg(err.code === 1 ? '位置情報の利用が許可されていません。ブラウザの設定を確認してください。'
+      : err.code === 3 ? '現在地の取得がタイムアウトしました。' : '現在地を取得できませんでした。');
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+});
 new ResizeObserver(resize).observe(cv);
 
 fetch('/data/land.json').then((r) => r.json()).then((j) => {

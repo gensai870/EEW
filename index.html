@@ -47,13 +47,13 @@
       <label><input type="checkbox" data-layer="eew" checked>到達円（概算）</label>
       <label><input type="checkbox" data-layer="quakes" checked>地震履歴</label>
       <label><input type="checkbox" data-layer="grid" checked>経緯度線</label>
-      <label><input type="checkbox" data-layer="user" checked>現在地</label>
     </fieldset>
 
     <div class="zoom">
       <button type="button" id="z-in" aria-label="拡大">＋</button>
       <button type="button" id="z-out" aria-label="縮小">－</button>
       <button type="button" id="z-home" aria-label="日本全体に戻す">日本</button>
+      <button type="button" id="z-loc" aria-label="現在地を取得して地図を拡大">現在地</button>
     </div>
 
     <div id="banner" class="banner" role="alert" hidden>
@@ -67,6 +67,7 @@
     </div>
 
     <div id="tip" class="tip" hidden></div>
+    <div id="loc-status" class="loc-status" role="status" hidden></div>
 
     <div class="legend" aria-hidden="true">
       <span class="lg"><i class="lg-p"></i>P波</span>
