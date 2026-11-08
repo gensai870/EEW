@@ -159,7 +159,15 @@ function eewStatus(e) {
 const cv = $('#map');
 const ctx = cv.getContext('2d');
 const V = { cx: 0.88, cy: 0.37, z: 5 };
-let W = 0, H = 0, DPR = 1, LAND = [], fitted = false;
+let W = 0, H = 0, DPR = 1, LAND = [], GEO = null, fitted = false;
+const FONT = getComputedStyle(document.body).fontFamily;
+const textW = new Map();
+function withBox(o) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < o.length; i += 2) { if (o[i] < x0) x0 = o[i]; if (o[i] > x1) x1 = o[i]; if (o[i + 1] < y0) y0 = o[i + 1]; if (o[i + 1] > y1) y1 = o[i + 1]; }
+  o.bb = [x0, y0, x1, y1];
+  return o;
+}
 
 const proj = (lon, lat) => {
   const s = Math.sin(lat * Math.PI / 180);
@@ -221,6 +229,51 @@ function drawGrid(s) {
   ctx.stroke();
 }
 
+function drawGeo(s) {
+  const X = (x) => (x - V.cx) * s + W / 2, Y = (y) => (y - V.cy) * s + H / 2;
+  const vx0 = V.cx - W / 2 / s, vx1 = V.cx + W / 2 / s, vy0 = V.cy - H / 2 / s, vy1 = V.cy + H / 2 / s;
+  const path = (arr, close) => {
+    for (const r of arr) {
+      if (r.bb[2] < vx0 || r.bb[0] > vx1 || r.bb[3] < vy0 || r.bb[1] > vy1) continue;
+      for (let i = 0; i < r.length; i += 2) {
+        const x = X(r[i]), y = Y(r[i + 1]);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      if (close) ctx.closePath();
+    }
+  };
+  ctx.beginPath(); path(GEO.lakes, true);
+  ctx.fillStyle = '#080c10'; ctx.fill(); ctx.strokeStyle = '#2b3b47'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); path(GEO.pref, false);
+  ctx.strokeStyle = '#25343f'; ctx.lineWidth = 0.8; ctx.stroke();
+
+  ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const placed = [];
+  const hit = (b) => placed.some((p) => b[0] < p[2] && b[2] > p[0] && b[1] < p[3] && b[3] > p[1]);
+  const width = (t, f) => { const k = f + t; let w = textW.get(k); if (w === undefined) { ctx.font = f; w = ctx.measureText(t).width; textW.set(k, w); } return w; };
+  const put = (t, px, py, f, fill, align, dotR) => {
+    const w = width(t, f), pad = 2, off = dotR ? dotR + 4 : 0;
+    const x0 = align === 'c' ? px - w / 2 : px + off, y0 = py;
+    const b = [x0 - pad, y0 - 8, x0 + w + pad, y0 + 8];
+    if (b[2] < 0 || b[0] > W || b[3] < 0 || b[1] > H || hit(b)) return;
+    placed.push(b);
+    ctx.font = f;
+    if (dotR) { ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+    ctx.textAlign = 'left';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,12,16,.85)'; ctx.strokeText(t, x0, y0);
+    ctx.fillStyle = fill; ctx.fillText(t, x0, y0);
+  };
+  if (V.z >= 5.4) {
+    const f = `11px ${FONT}`;
+    for (const l of GEO.plabels) put(l.n, X(l.x), Y(l.y), f, '#5d7281', 'c', 0);
+  }
+  for (const c of GEO.cities) {
+    if (V.z < c.z - (c.j ? 1 : 0.5)) continue;
+    const f = `${c.z < 4 ? 13 : 11}px ${FONT}`;
+    put(c.n, X(c.x), Y(c.y), f, c.j ? '#a9bac6' : '#7d8f9c', 'l', c.z < 4 ? 3 : 2.2);
+  }
+}
+
 function draw() {
   if (!W) return;
   const s = scale();
@@ -229,7 +282,9 @@ function draw() {
   if (S.layers.grid) drawGrid(s);
 
   ctx.beginPath();
+  const lx0 = V.cx - W / 2 / s, lx1 = V.cx + W / 2 / s, ly0 = V.cy - H / 2 / s, ly1 = V.cy + H / 2 / s;
   for (const r of LAND) {
+    if (r.bb[2] < lx0 || r.bb[0] > lx1 || r.bb[3] < ly0 || r.bb[1] > ly1) continue;
     for (let i = 0; i < r.length; i += 2) {
       const x = (r[i] - V.cx) * s + W / 2, y = (r[i + 1] - V.cy) * s + H / 2;
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -238,6 +293,7 @@ function draw() {
   }
   ctx.fillStyle = '#141c23'; ctx.fill('evenodd');
   ctx.strokeStyle = '#2b3b47'; ctx.lineWidth = 1; ctx.stroke();
+  if (GEO) drawGeo(s);
 
   if (S.layers.quakes) drawQuakes();
   if (S.user) drawUser();
@@ -396,10 +452,21 @@ fetch('/data/land.json').then((r) => r.json()).then((j) => {
   LAND = j.rings.map((flat) => {
     const o = new Float64Array(flat.length);
     for (let i = 0; i < flat.length; i += 2) { const p = proj(flat[i], flat[i + 1]); o[i] = p[0]; o[i + 1] = p[1]; }
-    return o;
+    return withBox(o);
   });
   draw();
 }).catch(() => { /* 地図データなしでも他機能は動作 */ });
+
+fetch('/data/geo.json').then((r) => r.json()).then((j) => {
+  const conv = (flat) => {
+    const o = new Float64Array(flat.length);
+    for (let i = 0; i < flat.length; i += 2) { const p = proj(flat[i], flat[i + 1]); o[i] = p[0]; o[i + 1] = p[1]; }
+    return withBox(o);
+  };
+  const pt = (o) => { const p = proj(o.x, o.y); return Object.assign({}, o, { x: p[0], y: p[1] }); };
+  GEO = { lakes: j.lakes.map(conv), pref: j.pref.map(conv), plabels: j.plabels.map(pt), cities: j.cities.map(pt) };
+  draw();
+}).catch(() => { /* 地名データなしでも地図は動作 */ });
 
 /* ---- レイヤー切替 ---- */
 document.querySelectorAll('input[data-layer]').forEach((el) => {

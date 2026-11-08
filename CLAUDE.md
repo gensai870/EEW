@@ -3,7 +3,7 @@
 緊急地震速報・地震情報を表示する静的PWA。ビルドなし。Vercel プロジェクト名は `eew`。
 
 ## 構成
-`index.html` / `styles.css` / `app.js` / `sw.js` / `data/land.json` / `vercel.json`
+`index.html` / `styles.css` / `app.js` / `sw.js` / `data/land.json` / `data/geo.json` / `vercel.json`
 
 ## 守ること（コードから読み取れない制約）
 - 取得データの表示は `textContent` 経由のみ。`innerHTML` を使わない。
