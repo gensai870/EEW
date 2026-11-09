@@ -96,6 +96,7 @@ const S = {
   listUpdated: NaN,
   listInfo: '',
   user: null,
+  hist: null,
   layers: Object.assign({ eew: true, quakes: true, grid: true }, store.get('layers', {})),
   voice: false,
   notify: false,
@@ -302,15 +303,22 @@ function draw() {
 
 function quakeRadius(q) { return 3 + Math.max(0, Number.isFinite(q.mag) ? q.mag : 2) * 1.7; }
 
+/* 通常: 発生から3分ごとに薄くなり、10分で消える。履歴: 選んだ1時間の地震を表示 */
+const HOUR = 36e5, FADE_MS = 6e5;
+function quakeAlpha(q) {
+  if (!Number.isFinite(q.lat) || !Number.isFinite(q.lon)) return 0;
+  if (S.hist !== null) return q.time >= S.hist && q.time < S.hist + HOUR ? 0.92 : 0;
+  const age = now() - q.time;
+  if (!(age < FADE_MS)) return 0;
+  return age < 18e4 ? 0.92 : age < 36e4 ? 0.65 : age < 54e4 ? 0.4 : 0.2;
+}
+
 function drawQuakes() {
-  const t = now();
-  const items = S.quakes.filter((q) => Number.isFinite(q.lat) && Number.isFinite(q.lon)).slice().sort((a, b) => quakeRadius(b) - quakeRadius(a));
+  const items = S.quakes.filter((q) => quakeAlpha(q) > 0).slice().sort((a, b) => quakeRadius(b) - quakeRadius(a));
   for (const q of items) {
     const [x, y] = toScreen(q.lon, q.lat);
     if (x < -30 || y < -30 || x > W + 30 || y > H + 30) continue;
-    const age = t - q.time;
-    const a = age < 864e5 ? 0.92 : age < 6048e5 ? 0.6 : 0.35;
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = quakeAlpha(q);
     ctx.beginPath(); ctx.arc(x, y, quakeRadius(q), 0, Math.PI * 2);
     ctx.fillStyle = q.shindo ? q.shindo.color : '#55636d'; ctx.fill();
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.stroke();
@@ -396,7 +404,7 @@ cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.offsetX, e.of
 function showTip(px, py) {
   let best = null, bd = 1e9;
   for (const q of S.quakes) {
-    if (!S.layers.quakes || !Number.isFinite(q.lat) || !Number.isFinite(q.lon)) continue;
+    if (!S.layers.quakes || !quakeAlpha(q)) continue;
     const [x, y] = toScreen(q.lon, q.lat), dd = Math.hypot(x - px, y - py);
     if (dd < quakeRadius(q) + 6 && dd < bd) { bd = dd; best = q; }
   }
@@ -467,6 +475,37 @@ fetch('/data/geo.json').then((r) => r.json()).then((j) => {
   GEO = { lakes: j.lakes.map(conv), pref: j.pref.map(conv), plabels: j.plabels.map(pt), cities: j.cities.map(pt) };
   draw();
 }).catch(() => { /* 地名データなしでも地図は動作 */ });
+
+/* ---- 1時間ごとの履歴 ---- */
+const histBar = $('#hist'), btnHist = $('#z-hist'), hPrev = $('#h-prev'), hNext = $('#h-next');
+const hourOf = (ms) => Math.floor(ms / HOUR) * HOUR;   // JSTは+9時間（整数時間）なので、時計の「時」と揃う
+function hourText(ms) {
+  const p = (n) => String(n).padStart(2, '0'), d = new Date(ms + 9 * HOUR), e = new Date(ms + 10 * HOUR);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${p(d.getUTCHours())}:00〜${p(e.getUTCHours())}:00`;
+}
+function renderHist() {
+  const on = S.hist !== null;
+  btnHist.setAttribute('aria-pressed', String(on));
+  histBar.hidden = !on;
+  if (!on) return;
+  const times = S.quakes.filter((q) => Number.isFinite(q.time)).map((q) => q.time);
+  const oldest = times.length ? hourOf(Math.min(...times)) : S.hist, newest = hourOf(now());
+  const n = S.quakes.filter((q) => quakeAlpha(q) > 0).length;
+  $('#h-label').textContent = `${hourText(S.hist)}　${n}件`;
+  hPrev.disabled = S.hist <= oldest; hNext.disabled = S.hist >= newest;
+}
+function setHist(v) { S.hist = v; renderHist(); draw(); }
+btnHist.addEventListener('click', () => {
+  if (S.hist !== null) { setHist(null); return; }
+  if (!S.layers.quakes) {
+    S.layers.quakes = true; store.set('layers', S.layers);
+    const cb = document.querySelector('input[data-layer="quakes"]'); if (cb) cb.checked = true;
+  }
+  setHist(hourOf(now()));
+});
+hPrev.addEventListener('click', () => { if (S.hist !== null) setHist(S.hist - HOUR); });
+hNext.addEventListener('click', () => { if (S.hist !== null) setHist(Math.min(S.hist + HOUR, hourOf(now()))); });
+$('#h-live').addEventListener('click', () => setHist(null));
 
 /* ---- レイヤー切替 ---- */
 document.querySelectorAll('input[data-layer]').forEach((el) => {
@@ -599,7 +638,7 @@ function handleList(d) {
   S.listUpdated = now();
   const first = d.No1 || d[Object.keys(d).find((k) => /^No\d+$/.test(k))];
   S.listInfo = first && typeof first.info === 'string' ? first.info : '';
-  renderList(); draw();
+  renderList(); renderHist(); draw();
 }
 
 function connect(key, onData) {
@@ -780,6 +819,10 @@ function tick() {
     updateBanner();
   }
   if (active !== tick.was) { renderEEW(); tick.was = active; draw(); }
+  if (S.hist === null && !active && now() - (tick.fade || 0) > 5000) {
+    tick.fade = now();
+    if (S.quakes.some((q) => now() - q.time < FADE_MS + 5000)) draw();
+  }
 }
 tick.was = false;
 setInterval(tick, 250);

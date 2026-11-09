@@ -54,6 +54,7 @@
       <button type="button" id="z-out" aria-label="縮小">－</button>
       <button type="button" id="z-home" aria-label="日本全体に戻す">日本</button>
       <button type="button" id="z-loc" aria-label="現在地を取得して地図を拡大">現在地</button>
+      <button type="button" id="z-hist" aria-pressed="false" aria-label="1時間ごとの地震履歴を表示">履歴</button>
     </div>
 
     <div id="banner" class="banner" role="alert" hidden>
@@ -67,6 +68,12 @@
     </div>
 
     <div id="tip" class="tip" hidden></div>
+    <div id="hist" class="hist" hidden>
+      <button type="button" id="h-prev" aria-label="1時間前">◀</button>
+      <span id="h-label" aria-live="polite"></span>
+      <button type="button" id="h-next" aria-label="1時間後">▶</button>
+      <button type="button" id="h-live">現在に戻る</button>
+    </div>
     <div id="loc-status" class="loc-status" role="status" hidden></div>
 
     <div class="legend" aria-hidden="true">

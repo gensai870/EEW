@@ -96,9 +96,9 @@ main {
 
 .zoom { position: absolute; top: 10px; right: 10px; display: grid; gap: 4px; }
 .zoom button { width: 48px; padding: 6px 0; background: rgba(13, 18, 23, .9); }
-#z-loc { font-size: 11px; }
+#z-loc, #z-hist { font-size: 11px; }
 .loc-status {
-  position: absolute; right: 10px; top: 164px; z-index: 5; max-width: 220px;
+  position: absolute; right: 10px; top: 206px; z-index: 5; max-width: 220px;
   padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px;
   background: rgba(13, 18, 23, .92); font-size: 12px; color: var(--text);
 }
@@ -199,6 +199,15 @@ td { padding: 3px 6px 3px 0; border-top: 1px solid var(--line); vertical-align: 
 .tools .btns { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .empty { color: var(--muted); font-size: 12.5px; }
+
+.hist {
+  position: absolute; left: 10px; bottom: 46px; z-index: 5;
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(13, 18, 23, .92); font-size: 12px;
+}
+.hist button { padding: 4px 10px; }
+.hist button:disabled { opacity: .4; cursor: default; }
+#h-label { min-width: 150px; text-align: center; }
 
 /* ---- about dialog ---- */
 dialog#dlg-about {
